@@ -1,67 +1,50 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { supabase } from '@/lib/supabase';
+import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
     const { apiKey } = await request.json();
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ 
+      return NextResponse.json({ 
         success: false, 
         message: 'API key is required' 
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      }, { status: 400 });
     }
 
     // Check if the API key exists and is active in the api_keys table
     const { data: apiKeyData, error } = await supabase
       .from('api_keys')
-      .select('id, key_name, is_active')
-      .eq('api_key', apiKey)
+      .select('*')
+      .eq('key', apiKey)
       .single();
 
-    if (error) {
-      console.error('Supabase query error:', error);
-      return new Response(JSON.stringify({ 
+    if (error || !apiKeyData) {
+      return NextResponse.json({ 
         success: false, 
-        message: 'Error validating API key' 
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+        message: 'Invalid API key' 
+      }, { status: 401 });
     }
 
-    if (apiKeyData && apiKeyData.is_active) {
-      return new Response(JSON.stringify({ 
-        success: true,
-        message: `API key '${apiKeyData.key_name}' validated successfully`
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    } else {
-      return new Response(JSON.stringify({ 
+    // Check if the API key is enabled
+    if (!apiKeyData.enabled) {
+      return NextResponse.json({ 
         success: false, 
-        message: apiKeyData ? 'API key is disabled' : 'Invalid API key' 
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+        message: 'API key is disabled' 
+      }, { status: 401 });
     }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Valid API key',
+      apiKey: apiKeyData
+    }, { status: 200 });
+
   } catch (error) {
     console.error('API validation error:', error);
-    return new Response(JSON.stringify({ 
+    return NextResponse.json({ 
       success: false, 
-      message: 'Server error during validation' 
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+      message: 'Error validating API key' 
+    }, { status: 500 });
   }
 }

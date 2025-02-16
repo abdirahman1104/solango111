@@ -10,6 +10,7 @@ import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 import NotificationManager from '@/components/NotificationManager';
 import useNotifications from '@/hooks/useNotifications';
 import ErrorMessage from '@/components/ErrorMessage';
+import Playground from '@/components/Playground'; // Import the Playground component
 
 export default function DashboardContent() {
   const { 
@@ -115,20 +116,8 @@ export default function DashboardContent() {
   return (
     <div className="space-y-8">
       <h1 className="text-4xl font-bold text-gray-900 text-center">Overview</h1>
-      
-      <PlanOverview />
-      
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">API Keys</h2>
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Create API Key
-          </button>
-        </div>
-
+      <div className="grid gap-8">
+        <PlanOverview />
         <ApiKeysTable
           apiKeys={apiKeys}
           onToggleVisibility={handleToggleVisibility}
@@ -137,8 +126,10 @@ export default function DashboardContent() {
           onDelete={handleDeleteClick}
           visibleKeys={visibleKeys}
         />
+        <div className="mt-8">
+          <Playground />
+        </div>
       </div>
-
       {showModal && (
         <ApiKeyModal
           isOpen={showModal}
