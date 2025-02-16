@@ -19,7 +19,7 @@ export async function POST(request) {
     const { data: apiKeyData, error } = await supabase
       .from('api_keys')
       .select('*')
-      .eq('api_key', apiKey) // Changed from 'key' to 'api_key'
+      .eq('key', apiKey) // Using 'key' as the column name
       .single();
 
     // Log the result (for debugging)
@@ -29,12 +29,12 @@ export async function POST(request) {
       return NextResponse.json({ 
         success: false, 
         message: 'Invalid API key',
-        debug: { error, data: apiKeyData } // Added debug info
+        debug: { error, data: apiKeyData }
       }, { status: 401 });
     }
 
     // Check if the API key is active
-    if (!apiKeyData.active) { // Changed from 'enabled' to 'active'
+    if (apiKeyData.active === false) { // Explicitly check for false
       return NextResponse.json({ 
         success: false, 
         message: 'API key is disabled' 
@@ -52,7 +52,7 @@ export async function POST(request) {
     return NextResponse.json({ 
       success: false, 
       message: 'Error validating API key',
-      debug: error.message // Added debug info
+      debug: error.message
     }, { status: 500 });
   }
 }
