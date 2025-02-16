@@ -3,13 +3,15 @@ import { NextResponse } from 'next/server';
 
 export default withAuth(
   function middleware(req) {
-    // Allow access to playground without redirection
-    if (req.nextUrl.pathname.startsWith('/playground')) {
-      return NextResponse.next();
+    // If user is not authenticated and tries to access protected routes
+    if (!req.nextauth.token) {
+      if (req.nextUrl.pathname.startsWith('/dashboard') || 
+          req.nextUrl.pathname.startsWith('/playground')) {
+        return NextResponse.redirect(new URL('/', req.url));
+      }
     }
 
-    // If the user is authenticated and trying to access the home page,
-    // redirect them to the dashboard
+    // If user is authenticated and tries to access home page
     if (req.nextUrl.pathname === '/' && req.nextauth.token) {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
@@ -19,11 +21,11 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Only require auth for dashboard routes
-        if (req.nextUrl.pathname.startsWith('/dashboard')) {
+        // Require authentication for dashboard and playground
+        if (req.nextUrl.pathname.startsWith('/dashboard') || 
+            req.nextUrl.pathname.startsWith('/playground')) {
           return !!token;
         }
-        // Allow all other routes
         return true;
       },
     },
