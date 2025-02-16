@@ -17,24 +17,19 @@ const handler = NextAuth({
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: 'jwt',
+  },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // Handle redirect after sign in
-      if (url.startsWith('/')) {
-        // Make sure to handle relative URLs
-        return `${baseUrl}${url}`
-      } else if (url.startsWith(baseUrl)) {
-        // Handle URLs from the same origin
-        return url
-      }
-      // Default to homepage for other cases
-      return baseUrl
+      // After sign in, redirect to dashboard
+      return `${baseUrl}/dashboard`
     },
     async session({ session, token }) {
       if (session?.user) {
         session.user.id = token.sub
       }
-      return session;
+      return session
     },
     async jwt({ token, user, account }) {
       if (user) {
@@ -43,7 +38,7 @@ const handler = NextAuth({
       if (account) {
         token.accessToken = account.access_token
       }
-      return token;
+      return token
     },
   },
   pages: {
@@ -52,6 +47,6 @@ const handler = NextAuth({
     error: '/auth/error',
   },
   debug: process.env.NODE_ENV === 'development',
-})
+});
 
-export { handler as GET, handler as POST };
+export { handler as GET, handler as POST }

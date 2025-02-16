@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { redirect } from 'next/navigation';
 import { useApiKeys } from '@/hooks/useApiKeys';
 import PlanOverview from '@/components/dashboard/PlanOverview';
@@ -16,10 +17,14 @@ import ErrorMessage from '@/components/ErrorMessage';
 export default function DashboardPage() {
   const { data: session, status } = useSession({
     required: true,
-    onUnauthenticated() {
-      redirect('/');
-    },
   });
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/');
+    }
+  }, [status, router]);
 
   const [error, setError] = useState(null);
 
@@ -77,6 +82,10 @@ export default function DashboardPage() {
         </div>
       </div>
     );
+  }
+
+  if (!session) {
+    return null;
   }
 
   const handleToggleVisibility = (keyId) => {

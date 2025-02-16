@@ -1,29 +1,28 @@
-import { getToken } from 'next-auth/jwt';
+import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 
-export async function middleware(request) {
-  const token = await getToken({ 
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET
-  });
-
-  if (request.nextUrl.pathname === '/') {
-    if (token) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+export default withAuth(
+  function middleware(req) {
+    // If the user is authenticated and trying to access the home page,
+    // redirect them to the dashboard
+    if (req.nextUrl.pathname === '/' && req.nextauth.token) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
     }
     return NextResponse.next();
+  },
+  {
+    callbacks: {
+      authorized: ({ token, req }) => {
+        // Only require auth for dashboard routes
+        if (req.nextUrl.pathname.startsWith('/dashboard')) {
+          return !!token;
+        }
+        return true;
+      },
+    },
   }
-
-  if (request.nextUrl.pathname.startsWith('/dashboard')) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-    return NextResponse.next();
-  }
-
-  return NextResponse.next();
-}
+);
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*']
+  matcher: ['/', '/dashboard/:path*'],
 };
