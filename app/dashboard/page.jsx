@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import { useApiKeys } from '@/hooks/useApiKeys';
@@ -21,10 +21,23 @@ export default function DashboardPage() {
     },
   });
 
+  const [error, setError] = useState(null);
+
+  // Add error boundary
+  useEffect(() => {
+    const handleError = (error) => {
+      console.error('Dashboard Error:', error);
+      setError(error.message);
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
   const { 
     apiKeys, 
     loading, 
-    error, 
+    error: apiKeysError, 
     createApiKey, 
     updateApiKey, 
     deleteApiKey 
@@ -45,6 +58,23 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error || apiKeysError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
+          <p className="text-gray-600 mb-4">{error || apiKeysError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -119,10 +149,6 @@ export default function DashboardPage() {
       });
     }
   };
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
 
   return (
     <div className="space-y-8">
