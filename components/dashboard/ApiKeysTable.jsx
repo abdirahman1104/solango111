@@ -60,7 +60,7 @@ const ApiKeyRow = ({ apiKey, onToggleVisibility, onCopy, onEdit, onDelete, isVis
         onClick={() => onDelete(apiKey)}
         icon={TrashIcon}
         label="Delete API Key"
-        className="hover:text-red-500"
+        className="text-red-400 hover:text-red-500"
       />
     </td>
   </tr>
@@ -68,42 +68,48 @@ const ApiKeyRow = ({ apiKey, onToggleVisibility, onCopy, onEdit, onDelete, isVis
 
 const EmptyState = () => (
   <tr>
-    <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">
+    <td colSpan="3" className="px-6 py-4 whitespace-nowrap text-center text-gray-500">
       No API keys found. Create one to get started.
     </td>
   </tr>
 );
 
 export default function ApiKeysTable({ 
-  apiKeys, 
-  onToggleVisibility, 
-  onCopy, 
-  onEdit, 
-  onDelete,
-  visibleKeys 
+  apiKeys = [], 
+  onToggleVisibility = () => {}, 
+  onCopy = () => {},
+  onEdit = () => {},
+  onDelete = () => {},
+  visibleKeys = {} 
 }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <TableHeader />
-        <tbody className="bg-white divide-y divide-gray-200">
-          {apiKeys.length > 0 ? (
-            apiKeys.map((apiKey) => (
-              <ApiKeyRow
-                key={apiKey.id}
-                apiKey={apiKey}
-                onToggleVisibility={onToggleVisibility}
-                onCopy={onCopy}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                isVisible={visibleKeys[apiKey.id]}
-              />
-            ))
-          ) : (
-            <EmptyState />
-          )}
-        </tbody>
-      </table>
+    <div className="flex flex-col">
+      <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+        <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+          <div className="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <TableHeader />
+              <tbody className="bg-white divide-y divide-gray-200">
+                {(!apiKeys || apiKeys.length === 0) ? (
+                  <EmptyState />
+                ) : (
+                  apiKeys.map((apiKey) => (
+                    <ApiKeyRow
+                      key={apiKey.id}
+                      apiKey={apiKey}
+                      onToggleVisibility={onToggleVisibility}
+                      onCopy={onCopy}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      isVisible={visibleKeys[apiKey.id]}
+                    />
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

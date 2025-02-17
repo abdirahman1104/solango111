@@ -1,108 +1,149 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
+
+async function saveUserToSupabase(user) {
+  try {
+    console.log('Starting saveUserToSupabase for:', user.email);
+    
+    // Check if user exists using admin client
+    const { data: existingUser, error: fetchError } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('email', user.email)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('Error checking existing user:', fetchError);
+      return null;
+    }
+
+    const now = new Date().toISOString();
+
+    if (existingUser) {
+      console.log('Updating existing user:', existingUser.email);
+      // Update existing user using admin client
+      const { data, error: updateError } = await supabaseAdmin
+        .from('users')
+        .update({
+          name: user.name,
+          image: user.picture,
+          last_sign_in: now
+        })
+        .eq('email', user.email)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating user:', updateError);
+        return existingUser;
+      }
+      return data;
+    }
+
+    console.log('Creating new user:', user.email);
+    // Create new user using admin client
+    const { data: newUser, error: createError } = await supabaseAdmin
+      .from('users')
+      .insert([
+        {
+          email: user.email,
+          name: user.name,
+          image: user.picture,
+          provider: 'google',
+          created_at: now,
+          last_sign_in: now
+        }
+      ])
+      .select()
+      .single();
+
+    if (createError) {
+      console.error('Error creating user:', createError);
+      return {
+        email: user.email,
+        name: user.name,
+        image: user.picture
+      };
+    }
+
+    return newUser;
+  } catch (error) {
+    console.error('Error in saveUserToSupabase:', error);
+    return {
+      email: user.email,
+      name: user.name,
+      image: user.picture
+    };
+  }
+}
 
 const handler = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code",
-          scope: "openid email profile"
-        }
-      }
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
+  debug: true,
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
-    async redirect({ url, baseUrl }) {
-      return `${baseUrl}/dashboard`
-    },
-    async session({ session, token }) {
-      if (session?.user) {
-        session.user.id = token.sub
-      }
-      return session
-    },
     async signIn({ user, account, profile }) {
       try {
-        // Check if user exists in Supabase
-        const { data: existingUser, error: fetchError } = await supabase
-          .from('users')
-          .select()
-          .eq('email', user.email)
-          .single();
-
-        if (fetchError && fetchError.code !== 'PGRST116') {
-          console.error('Error checking user:', fetchError);
+        console.log('SignIn callback started', { user, account });
+        
+        if (!user?.email) {
+          console.error('No email provided in user object');
           return false;
         }
 
-        // If user doesn't exist, create them
-        if (!existingUser) {
-          // Generate a UUID for the new user
-          const { data: { user: supabaseUser }, error: authError } = await supabase.auth.admin.createUser({
-            email: user.email,
-            email_confirmed: true,
-            user_metadata: {
-              name: user.name,
-              provider: account.provider
-            }
-          });
-
-          if (authError) {
-            console.error('Error creating Supabase auth user:', authError);
-            return false;
-          }
-
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert([
-              {
-                id: supabaseUser.id, // This will be a UUID
-                email: user.email,
-                name: user.name,
-                image: user.image,
-                provider: account.provider,
-                created_at: new Date().toISOString(),
-              }
-            ]);
-
-          if (insertError) {
-            console.error('Error creating user:', insertError);
-            return false;
-          }
-        }
+        const supabaseUser = await saveUserToSupabase({
+          email: user.email,
+          name: user.name,
+          picture: user.image
+        });
 
         return true;
       } catch (error) {
-        console.error('SignIn error:', error);
-        return false;
+        console.error('Error in signIn callback:', error);
+        return true;
       }
     },
     async jwt({ token, user, account }) {
-      if (user) {
-        token.id = user.id
+      try {
+        if (user) {
+          token.email = user.email;
+          token.name = user.name;
+          token.picture = user.image;
+        }
+        return token;
+      } catch (error) {
+        console.error('Error in jwt callback:', error);
+        return token;
       }
-      if (account) {
-        token.accessToken = account.access_token
-      }
-      return token
     },
+    async session({ session, token }) {
+      try {
+        if (session?.user) {
+          session.user.email = token.email;
+          session.user.name = token.name;
+          session.user.image = token.picture;
+        }
+        return session;
+      } catch (error) {
+        console.error('Error in session callback:', error);
+        return session;
+      }
+    }
   },
   pages: {
     signIn: '/',
-    signOut: '/',
     error: '/auth/error',
   },
-  debug: process.env.NODE_ENV === 'development',
 });
 
-export { handler as GET, handler as POST }
+export { handler as GET, handler as POST };
