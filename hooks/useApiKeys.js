@@ -20,9 +20,16 @@ export function useApiKeys() {
   const fetchApiKeys = async () => {
     try {
       setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from(TABLE_NAME)
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -37,10 +44,17 @@ export function useApiKeys() {
 
   const createApiKey = async (formData) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       const newKey = {
         key_name: formData.name,
         api_key: generateApiKey(),
-        is_active: true
+        is_active: true,
+        user_id: user.id
       };
 
       const { data, error } = await supabase

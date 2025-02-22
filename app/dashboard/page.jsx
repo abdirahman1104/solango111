@@ -16,7 +16,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [visibleKeys, setVisibleKeys] = useState({});
-  const { apiKeys = [], loading, error, deleteApiKey, updateApiKey } = useApiKeys();
+  const { apiKeys = [], loading, error, createApiKey, deleteApiKey, updateApiKey } = useApiKeys();
   const { showNotification } = useNotifications();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -65,18 +65,33 @@ export default function DashboardPage() {
     setIsDeleteModalOpen(true);
   };
 
-  const handleEdit = async (updatedKey) => {
+  const handleCreateOrEdit = async (formData) => {
     try {
-      await updateApiKey(selectedApiKey.id, updatedKey);
-      showNotification({
-        type: 'success',
-        message: 'API key updated successfully'
-      });
+      if (selectedApiKey) {
+        // Edit existing key
+        await updateApiKey(selectedApiKey.id, formData);
+        showNotification({
+          type: 'success',
+          message: 'API key updated successfully'
+        });
+      } else {
+        // Create new key
+        const result = await createApiKey(formData);
+        if (result.success) {
+          showNotification({
+            type: 'success',
+            message: 'API key created successfully'
+          });
+        } else {
+          throw new Error(result.error);
+        }
+      }
       setIsEditModalOpen(false);
+      setSelectedApiKey(null);
     } catch (error) {
       showNotification({
         type: 'error',
-        message: 'Failed to update API key'
+        message: selectedApiKey ? 'Failed to update API key' : 'Failed to create API key'
       });
     }
   };
@@ -123,7 +138,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Edit Modal */}
+      {/* Edit/Create Modal */}
       {isEditModalOpen && (
         <ApiKeyModal
           isOpen={isEditModalOpen}
@@ -131,7 +146,7 @@ export default function DashboardPage() {
             setIsEditModalOpen(false);
             setSelectedApiKey(null);
           }}
-          onSubmit={handleEdit}
+          onSubmit={handleCreateOrEdit}
           apiKey={selectedApiKey}
         />
       )}
