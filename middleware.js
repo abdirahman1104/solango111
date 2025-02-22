@@ -3,16 +3,9 @@ import { NextResponse } from 'next/server';
 
 export default withAuth(
   function middleware(req) {
-    // If user is not authenticated and tries to access protected routes
-    if (!req.nextauth.token) {
-      if (req.nextUrl.pathname.startsWith('/dashboard') || 
-          req.nextUrl.pathname.startsWith('/playground')) {
-        return NextResponse.redirect(new URL('/', req.url));
-      }
-    }
-
-    // If user is authenticated and tries to access home page
-    if (req.nextUrl.pathname === '/' && req.nextauth.token) {
+    // If the user is authenticated and trying to access the login page,
+    // redirect them to the dashboard
+    if (req.nextUrl.pathname === '/login' && req.nextauth.token) {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
@@ -21,12 +14,17 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Require authentication for dashboard and playground
-        if (req.nextUrl.pathname.startsWith('/dashboard') || 
-            req.nextUrl.pathname.startsWith('/playground')) {
-          return !!token;
-        }
-        return true;
+        // Public paths that don't require authentication
+        const publicPaths = ['/login', '/api/auth', '/', '/terms-of-service', '/privacy-policy'];
+        const isPublicPath = publicPaths.some(path => 
+          req.nextUrl.pathname.startsWith(path)
+        );
+
+        // Allow access to public paths without authentication
+        if (isPublicPath) return true;
+
+        // Require authentication for all other paths
+        return !!token;
       },
     },
   }

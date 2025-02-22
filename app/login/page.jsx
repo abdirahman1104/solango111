@@ -76,11 +76,11 @@ export default function LoginPage() {
 
         <div className="text-center text-sm text-gray-500">
           By signing in, you agree to our{' '}
-          <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
+          <a href="/terms-of-service" className="font-medium text-indigo-600 hover:text-indigo-500">
             Terms of Service
           </a>{' '}
           and{' '}
-          <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
+          <a href="/privacy-policy" className="font-medium text-indigo-600 hover:text-indigo-500">
             Privacy Policy
           </a>
         </div>
